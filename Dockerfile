@@ -104,3 +104,32 @@ USER root
 RUN chmod g+rwx /var/run/nginx.pid && \
     chmod -R g+rw /var/www /usr/share/nginx/cache /var/cache/nginx /var/lib/nginx/ /etc/php7/php-fpm.d storage
 USER 1001
+
+RUN set -e; \
+    # HOTFIX 1: force root URL and schema
+    # We locate the boot() method in AppServiceProvider.php
+    line=$(grep -n 'public function boot(Dispatcher $dispatcher)$' /var/www/html/app/Providers/AppServiceProvider.php | tail -n1 | cut -f1 -d:); \
+\
+    # We insert the code 2 lines after because there is a "{" on a separate line
+    insertAtLine=$((line+2)); \
+\
+    # We insert the hotfix
+    sed -i "$insertAtLine i \\ \
+        if (getenv('APP_URL')) { \n \
+            if (strpos(getenv('APP_URL'), 'https') === 0) { \n \
+                \\\URL::forceScheme('https'); \n \
+            } \n \
+            \\\URL::forceRootUrl(getenv('APP_URL')); \n \
+        } \n \
+    " /var/www/html/app/Providers/AppServiceProvider.php; \
+\
+    # We forward the APP_URL environment variable to FPM
+    echo '[www]' > /etc/php7/php-fpm.d/app-url-fix.conf; \
+    echo 'env[APP_URL] = $APP_URL' >> /etc/php7/php-fpm.d/app-url-fix.conf; \
+\
+    # HOTFIX 2: fix login redirection to dashboard
+    # Normally it redirects to the last URL, but since Laravel is not able to detect URLs right, we force a redirection to dashboard
+    sed -i "s/Redirect::intended(cachet_route('dashboard'));/cachet_redirect('dashboard');/g" \
+        /var/www/html/app/Http/Controllers/AuthController.php; \
+    sed -i "s/Redirect::intended('dashboard');/cachet_redirect('dashboard');/g" \
+        /var/www/html/app/Http/Controllers/AuthController.php

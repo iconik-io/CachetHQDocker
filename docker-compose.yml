@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:12-alpine
     volumes:
-      - /var/lib/postgresql/data
+      - postgres_vol:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -15,10 +15,11 @@ services:
       args:
         - cachet_ver=2.4
     ports:
-      - 80:8000
+      - 8000:8000
     links:
       - postgres:postgres
     environment:
+      - TRUSTED_PROXIES=*
       - DB_DRIVER=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -26,11 +27,14 @@ services:
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
       - DB_PREFIX=chq_
-      - APP_KEY=${APP_KEY:-null}
       - APP_LOG=errorlog
+      - APP_KEY=base64:9KgfoyZnFbM8p9ZUTrL3aUohQ5ovadBqPfsvHNnBalo=
       - APP_ENV=${APP_ENV:-production}
+      - APP_URL=https://status2.iconik.io/
       - APP_DEBUG=false
       - DEBUG=false
     depends_on:
       - postgres
     restart: on-failure
+volumes:
+  postgres_vol:
