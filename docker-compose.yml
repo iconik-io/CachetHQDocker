@@ -10,10 +10,14 @@ services:
       - POSTGRES_PASSWORD=postgres
     restart: always
   cachet:
+    volumes:
+      - ./Cachet/app/:/var/www/html/app/
+      - ./Cachet/storage/:/var/www/html/storage/
     build:
       context: .
       args:
-        - cachet_ver=2.4
+        - cachet_ver=v2.5.1
+        - archive_url=https://github.com/fiveai/Cachet/archive/refs/tags/v2.5.1.tar.gz
     ports:
       - 8000:8000
     links:
@@ -28,11 +32,21 @@ services:
       - DB_PASSWORD=postgres
       - DB_PREFIX=chq_
       - APP_LOG=errorlog
-      - APP_KEY=base64:9KgfoyZnFbM8p9ZUTrL3aUohQ5ovadBqPfsvHNnBalo=
+      - APP_KEY
       - APP_ENV=${APP_ENV:-production}
-      - APP_URL=https://status2.iconik.io/
+      - APP_URL
       - APP_DEBUG=false
       - DEBUG=false
+      - MAIL_DRIVER
+      - MAIL_HOST
+      - MAIL_PORT
+      - MAIL_USERNAME
+      - MAIL_PASSWORD
+      - MAIL_ADDRESS
+      - MAIL_NAME
+      - MAIL_ENCRYPTION
+
+
     depends_on:
       - postgres
     restart: on-failure
